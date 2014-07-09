@@ -59,11 +59,22 @@ public class DriverCustomView extends View implements SensorEventListener {
         if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
             Sensor gravSensor = event.sensor;
             gravSens = event.values;
+            Log.d("Sensor","Changing, X:" + gravSens[0] + " Y:" + gravSens[1] + " Z:" + gravSens[2]);
+            for (DriverListener listener : listeners)
+            {
+                listener.setText(gravSens[0], gravSens[1], gravSens[2]);
+            }
+
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    public void setListener(DriverListener listener)
+    {
+        listeners.add(listener);
     }
 }

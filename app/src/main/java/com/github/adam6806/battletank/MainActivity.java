@@ -4,22 +4,28 @@ import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
+import android.widget.TextView;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements DriverListener {
     DriverCustomView customView;
+    TextView coords;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver);
+        coords = (TextView) findViewById(R.id.coordText);
+
         DriverCustomView customView = (DriverCustomView) findViewById(R.id.driverView);
+        customView.setListener(this);
 
         /*if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -46,6 +52,13 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void setText(float x, float y, float z) {
+        Log.d("Gravity","Changing, X:" + x + " Y:" + y + " Z:" + z);
+        coords.setText("Changing: X-" + x + " Y-" + y + " Z-" + z);
+
     }
 
     /**

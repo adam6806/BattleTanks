@@ -12,11 +12,12 @@
         android:layout_height="match_parent" />
 
     <TextView
-        android:id="@+id/xText"
+        android:id="@+id/coordText"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="false"
         android:gravity="center"
-        android:text="" />
+        android:text="Testing"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
 </FrameLayout>
