@@ -4,5 +4,8 @@
     <string name="app_name">Battle Tanks</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
-
+    <string name="on">Turn On</string>
+    <string name="off">Turn Off</string>
+    <string name="Visible">Get Visible</string>
+    <string name="List">List Devices</string>
 </resources>
