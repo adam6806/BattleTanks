@@ -32,6 +32,7 @@ public class MainActivity extends Activity implements SensorEventListener
   private SensorManager mSensorManager;
   private Sensor mGrav;
   int[] sensorValues = { 0, 0, 0 };
+  String command = "0";
   private Button On, Off, Visible, list;
   private BluetoothAdapter BA;
   private BluetoothSocket btSocket = null;
@@ -154,19 +155,66 @@ public class MainActivity extends Activity implements SensorEventListener
     // Many sensors return 3 values, one for each axis.
     // if (event.sensor.getType() == Sensor.TYPE_GRAVITY)
     // {
-    int x = (int) (5f * event.values[0] + 50f);
-    int y = (int) (5f * event.values[1] + 50f);
-    int z = (int) (5f * event.values[2] + 50f);
+    int x = (int) (event.values[0] + 10f);
+    int y = (int) (event.values[1] + 10f);
+    int z = (int) (event.values[2] + 10f);
 
-    if (x != sensorValues[0] || y != sensorValues[1] || z != sensorValues[2])
+    if (y != sensorValues[1] || z != sensorValues[2])
     {
       Log.i("Test", "X: " + x + "; Y: " + y + "; Z: " + z);
-      // if( z != -6 && )
+
       sensorValues[0] = x;
       sensorValues[1] = y;
       sensorValues[2] = z;
+
+      String newCommand;
+      // Adam is excited to come out of closet
+      // don't be afraid to call boys ;)
+      if (z >= 17)
+      {
+        if (y >= 11)
+        {
+          newCommand = "5";
+          Log.d("Send", "Z: " + z + "; Y: " + y);
+        }
+        else if (y <= 6)
+        {
+          newCommand = "4";
+          Log.d("Send", "Z: " + z + "; Y: " + y);
+        }
+        else
+        {
+          newCommand = "1";
+          Log.d("Send", "Z: " + z + "; Y: " + y);
+        }
+      }
+      else if (z <= 11)
+      {
+        newCommand = "2";
+        Log.d("Send", "Z: " + z + "; Y: " + y);
+      }
+      else if (y >= 11)
+      {
+        newCommand = "6";
+        Log.d("Send", "Z: " + z + "; Y: " + y);
+      }
+      else if (y <= 6)
+      {
+        newCommand = "3";
+        Log.d("Send", "Z: " + z + "; Y: " + y);
+      }
+      else
+      {
+        newCommand = "0";
+        Log.d("Send", "Z: " + z + "; Y: " + y);
+      }
       
-      sendData(String.valueOf(z) + "*");
+      if(!newCommand.equalsIgnoreCase(command)) {
+        sendData(newCommand);
+        command = newCommand;        
+      }
+      
+      // sendData(String.valueOf(z) + "*");
 
       // do something with bluetooth
     }
