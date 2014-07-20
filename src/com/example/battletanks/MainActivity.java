@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -42,7 +43,7 @@ public class MainActivity extends Activity implements SensorEventListener
   private static final UUID MY_UUID = UUID
       .fromString("00001101-0000-1000-8000-00805F9B34FB");
   private static String address = "00:06:66:68:39:6E";
-
+  private RelativeLayout driverMain;
   @Override
   protected void onCreate(Bundle savedInstanceState)
   {
@@ -60,6 +61,8 @@ public class MainActivity extends Activity implements SensorEventListener
     lv = (ListView) findViewById(R.id.listView1);
 
     BA = BluetoothAdapter.getDefaultAdapter();
+    
+    driverMain = (RelativeLayout) findViewById(R.id.ActivityMain);
   }
 
   public void on(View view)
@@ -176,37 +179,44 @@ public class MainActivity extends Activity implements SensorEventListener
         {
           newCommand = "5";
           Log.d("Send", "Z: " + z + "; Y: " + y);
+          driverMain.setBackgroundResource(R.drawable.arrow_right_up);
         }
         else if (y <= 6)
         {
           newCommand = "4";
           Log.d("Send", "Z: " + z + "; Y: " + y);
+          driverMain.setBackgroundResource(R.drawable.arrow_left_up);
         }
         else
         {
           newCommand = "1";
           Log.d("Send", "Z: " + z + "; Y: " + y);
+          driverMain.setBackgroundResource(R.drawable.arrows_up);
         }
       }
       else if (z <= 11)
       {
         newCommand = "2";
         Log.d("Send", "Z: " + z + "; Y: " + y);
+        driverMain.setBackgroundResource(R.drawable.arrow_down);
       }
       else if (y >= 11)
       {
         newCommand = "6";
         Log.d("Send", "Z: " + z + "; Y: " + y);
+        driverMain.setBackgroundResource(R.drawable.arrow_right);
       }
       else if (y <= 6)
       {
         newCommand = "3";
         Log.d("Send", "Z: " + z + "; Y: " + y);
+        driverMain.setBackgroundResource(R.drawable.arrow_left);
       }
       else
       {
         newCommand = "0";
         Log.d("Send", "Z: " + z + "; Y: " + y);
+        driverMain.setBackgroundResource(R.drawable.stop);
       }
       
       if(!newCommand.equalsIgnoreCase(command)) {
