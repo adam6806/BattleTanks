@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -15,327 +17,367 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
-public class MainActivity extends Activity implements SensorEventListener
-{
+public class MainActivity extends Activity implements SensorEventListener {
 
-  private SensorManager mSensorManager;
-  private Sensor mGrav;
-  int[] sensorValues = { 0, 0, 0 };
-  String command = "0";
-  private Button On, Off, Visible, list;
-  private BluetoothAdapter BA;
-  private BluetoothSocket btSocket = null;
-  private OutputStream outStream = null;
-  private Set<BluetoothDevice> pairedDevices;
-  private ListView lv;
-  private static final UUID MY_UUID = UUID
-      .fromString("00001101-0000-1000-8000-00805F9B34FB");
-  private static String address = "00:06:66:68:39:6E";
-  private RelativeLayout driverMain;
-  @Override
-  protected void onCreate(Bundle savedInstanceState)
-  {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
+    private static final int REQUEST_ENABLE_BT = 1;
+    private static final UUID MY_UUID = UUID
+            .fromString("00001101-0000-1000-8000-00805F9B34FB");
+    int[] sensorValues = {0, 0, 0};
+    String command = "0";
+    private SensorManager mSensorManager;
+    private Sensor mGrav;
+    private Button onBtn;
+    private Button offBtn;
+    private Button listBtn;
+    private Button findBtn;
+    private TextView text;
+    private TextView cmdView;
+    private BluetoothAdapter myBluetoothAdapter;
+    private BluetoothSocket btSocket;
+    private OutputStream outStream;
+    private BroadcastReceiver bReceiver;
+    private Set<BluetoothDevice> pairedDevices;
+    private ListView myListView;
+    private ArrayAdapter<String> BTArrayAdapter;
+    private String address;
+    private String deviceName;
+    private HashMap<String, String> deviceMap;
+    private boolean connected = false;
+    private final String cmdString = "Command sent: ";
 
-    mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-    mGrav = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
 
-    On = (Button) findViewById(R.id.button1);
-    Off = (Button) findViewById(R.id.button2);
-    Visible = (Button) findViewById(R.id.button3);
-    list = (Button) findViewById(R.id.button4);
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-    lv = (ListView) findViewById(R.id.listView1);
+        // Prevent screen from turning off
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-    BA = BluetoothAdapter.getDefaultAdapter();
-    
-    driverMain = (RelativeLayout) findViewById(R.id.ActivityMain);
-  }
+        deviceMap = new HashMap();
 
-  public void on(View view)
-  {
+        // Get UI elements
+        text = (TextView) findViewById(R.id.text);
+        cmdView = (TextView) findViewById(R.id.commandText);
+        onBtn = (Button) findViewById(R.id.turnOn);
+        offBtn = (Button) findViewById(R.id.turnOff);
+        listBtn = (Button) findViewById(R.id.paired);
+        findBtn = (Button) findViewById(R.id.search);
+        myListView = (ListView) findViewById(R.id.listView1);
 
-    Log.i("Test", "On button");
+        // ArrayAdapter to hold the list of devices
+        BTArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1);
+        myListView.setAdapter(BTArrayAdapter);
 
-    if (!BA.isEnabled())
-    {
-      Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-      startActivityForResult(turnOn, 0);
-      Toast.makeText(getApplicationContext(), "Turned on", Toast.LENGTH_LONG)
-          .show();
-    }
-    else
-    {
-      Toast.makeText(getApplicationContext(), "Already on", Toast.LENGTH_LONG)
-          .show();
-    }
-  }
+        // Setup gravity sensor
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mGrav = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
 
-  public void list(View view)
-  {
-
-    Log.i("Test", "list button");
-
-    pairedDevices = BA.getBondedDevices();
-
-    ArrayList list = new ArrayList();
-    for (BluetoothDevice bt : pairedDevices)
-      list.add(bt.getName());
-
-    Toast.makeText(getApplicationContext(), "Showing Paired Devices",
-        Toast.LENGTH_SHORT).show();
-    final ArrayAdapter adapter = new ArrayAdapter(this,
-        android.R.layout.simple_list_item_1, list);
-    lv.setAdapter(adapter);
-
-  }
-
-  public void off(View view)
-  {
-
-    Log.i("Test", "Off buttons");
-
-    BA.disable();
-    Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG)
-        .show();
-  }
-
-  public void visible(View view)
-  {
-
-    Log.i("Test", "visible button");
-
-    Intent getVisible = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-    startActivityForResult(getVisible, 0);
-
-  }
-
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu)
-  {
-    // Inflate the menu; this adds items to the action bar if it is present.
-    getMenuInflater().inflate(R.menu.main, menu);
-    return true;
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item)
-  {
-    // Handle action bar item clicks here. The action bar will
-    // automatically handle clicks on the Home/Up button, so long
-    // as you specify a parent activity in AndroidManifest.xml.
-    int id = item.getItemId();
-    if (id == R.id.action_settings)
-    {
-      return true;
-    }
-    return super.onOptionsItemSelected(item);
-  }
-
-  @Override
-  public void onAccuracyChanged(Sensor sensor, int accuracy)
-  {
-    // Do something here if sensor accuracy changes.
-  }
-
-  @Override
-  public void onSensorChanged(SensorEvent event)
-  {
-    // The light sensor returns a single value.
-    // Many sensors return 3 values, one for each axis.
-    // if (event.sensor.getType() == Sensor.TYPE_GRAVITY)
-    // {
-    int x = (int) (event.values[0] + 10f);
-    int y = (int) (event.values[1] + 10f);
-    int z = (int) (event.values[2] + 10f);
-
-    if (y != sensorValues[1] || z != sensorValues[2])
-    {
-      Log.i("Test", "X: " + x + "; Y: " + y + "; Z: " + z);
-
-      sensorValues[0] = x;
-      sensorValues[1] = y;
-      sensorValues[2] = z;
-
-      String newCommand;
-      // Adam is excited to come out of closet
-      // don't be afraid to call boys ;)
-      if (z >= 17)
-      {
-        if (y >= 11)
-        {
-          newCommand = "5";
-          Log.d("Send", "Z: " + z + "; Y: " + y);
-          driverMain.setBackgroundResource(R.drawable.arrow_right_up);
+        // Check if the device has a gravity sensor
+        if (mGrav == null) {
+            Toast.makeText(getApplicationContext(), "Your device does not support Gravity sensor!!",
+                    Toast.LENGTH_LONG).show();
         }
-        else if (y <= 6)
-        {
-          newCommand = "4";
-          Log.d("Send", "Z: " + z + "; Y: " + y);
-          driverMain.setBackgroundResource(R.drawable.arrow_left_up);
+
+        // Get the devices bluetooth adapter
+        myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        // Check if the device has a gravity sensor
+        if (myBluetoothAdapter == null) {
+            Toast.makeText(getApplicationContext(), "Your device does not support Bluetooth",
+                    Toast.LENGTH_LONG).show();
         }
-        else
-        {
-          newCommand = "1";
-          Log.d("Send", "Z: " + z + "; Y: " + y);
-          driverMain.setBackgroundResource(R.drawable.arrows_up);
+
+        // Check if the device supports bluetooth
+        if (myBluetoothAdapter == null || mGrav == null) {
+            onBtn.setEnabled(false);
+            offBtn.setEnabled(false);
+            listBtn.setEnabled(false);
+            findBtn.setEnabled(false);
+            text.setText("Status: not supported");
+        } else {
+            bReceiver = new BroadcastReceiver() {
+
+                public void onReceive(Context context, Intent intent) {
+
+                    String action = intent.getAction();
+                    // When discovery finds a device
+                    if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                        // Get the BluetoothDevice object from the Intent
+                        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                        // add the name and the MAC address of the object to the arrayAdapter
+                        BTArrayAdapter.add(device.getName());
+                        deviceMap.put(device.getName(), device.getAddress());
+                        BTArrayAdapter.notifyDataSetChanged();
+                    }
+                }
+            };
+
+            myListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                @Override
+                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                    deviceName = (String) ((TextView) view).getText();
+                    address = deviceMap.get(deviceName);
+
+                    // Set up a pointer to the remote node using it's address.
+                    BluetoothDevice device = myBluetoothAdapter.getRemoteDevice(address);
+
+                    // Two things are needed to make a connection:
+                    // A MAC address, which we got above.
+                    // A Service ID or UUID. In this case we are using the
+                    // UUID for SPP.
+                    try {
+                        btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
+                        Log.d("Cnct", "uuid");
+                    } catch (IOException e) {
+                        Log.d("Cnct", "e");
+                    }
+
+                    // Discovery is resource intensive. Make sure it isn't going on
+                    // when you attempt to connect and pass your message.
+                    myBluetoothAdapter.cancelDiscovery();
+
+                    // Establish the connection. This will block until it connects.
+                    Log.d("Cnct", "...Connecting to Remote...");
+                    try {
+                        btSocket.connect();
+                    } catch (IOException e) {
+                        try {
+                            btSocket.close();
+                        } catch (IOException e2) {
+                            Log.d("Cnct", "e2!");
+                        }
+                    }
+
+                    // Create a data stream so we can talk to server.
+                    Log.d("Cnct", "...Creating Socket...");
+
+                    try {
+                        outStream = btSocket.getOutputStream();
+                        connected = true;
+                        text.setText("Status: Connected to " + deviceName);
+                        Toast.makeText(getApplicationContext(), "Connection established and data link opened!!",
+                                Toast.LENGTH_LONG).show();
+                        Log.d("Cnct", "...Connection established and data link opened...");
+                    } catch (IOException e) {
+                        Log.d("Cnct", "e3");
+                    }
+                }
+            });
         }
-      }
-      else if (z <= 11)
-      {
-        newCommand = "2";
-        Log.d("Send", "Z: " + z + "; Y: " + y);
-        driverMain.setBackgroundResource(R.drawable.arrow_down);
-      }
-      else if (y >= 11)
-      {
-        newCommand = "6";
-        Log.d("Send", "Z: " + z + "; Y: " + y);
-        driverMain.setBackgroundResource(R.drawable.arrow_right);
-      }
-      else if (y <= 6)
-      {
-        newCommand = "3";
-        Log.d("Send", "Z: " + z + "; Y: " + y);
-        driverMain.setBackgroundResource(R.drawable.arrow_left);
-      }
-      else
-      {
-        newCommand = "0";
-        Log.d("Send", "Z: " + z + "; Y: " + y);
-        driverMain.setBackgroundResource(R.drawable.stop);
-      }
-      
-      if(!newCommand.equalsIgnoreCase(command)) {
-        sendData(newCommand);
-        command = newCommand;        
-      }
-      
-      // sendData(String.valueOf(z) + "*");
-
-      // do something with bluetooth
     }
 
-    // Do something with this sensor value.
+    public void on(View view) {
 
-    // }
-  }
+        if (!myBluetoothAdapter.isEnabled()) {
+            Intent turnOnIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(turnOnIntent, REQUEST_ENABLE_BT);
 
-  @Override
-  protected void onResume()
-  {
-    super.onResume();
-    mSensorManager.registerListener(this, mGrav,
-        SensorManager.SENSOR_DELAY_NORMAL);
-
-    // Set up a pointer to the remote node using it's address.
-    BluetoothDevice device = BA.getRemoteDevice(address);
-
-    // Two things are needed to make a connection:
-    // A MAC address, which we got above.
-    // A Service ID or UUID. In this case we are using the
-    // UUID for SPP.
-    try
-    {
-      btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
-      Log.d("Cnct", "uuid");
-    } catch (IOException e)
-    {
-      Log.d("Cnct", "e");
+            Toast.makeText(getApplicationContext(), "Bluetooth turned on",
+                    Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Bluetooth is already on",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
-    // Discovery is resource intensive. Make sure it isn't going on
-    // when you attempt to connect and pass your message.
-    BA.cancelDiscovery();
-
-    // Establish the connection. This will block until it connects.
-    Log.d("Cnct", "...Connecting to Remote...");
-    try
-    {
-      btSocket.connect();
-      Log.d("Cnct", "...Connection established and data link opened...");
-    } catch (IOException e)
-    {
-      try
-      {
-        btSocket.close();
-      } catch (IOException e2)
-      {
-        Log.d("Cnct", "e2!");
-      }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // TODO Auto-generated method stub
+        if (requestCode == REQUEST_ENABLE_BT) {
+            if (myBluetoothAdapter.isEnabled()) {
+                text.setText("Status: Enabled");
+            } else {
+                text.setText("Status: Disabled");
+            }
+        }
     }
 
-    // Create a data stream so we can talk to server.
-    Log.d("Cnct", "...Creating Socket...");
+    public void list(View view) {
+        // get paired devices
+        pairedDevices = myBluetoothAdapter.getBondedDevices();
+        BTArrayAdapter.clear();
+        deviceMap.clear();
 
-    try
-    {
-      outStream = btSocket.getOutputStream();
-    } catch (IOException e)
-    {
-      Log.d("Cnct", "e3");
-    }
-  }
+        // put it's one to the adapter
+        for (BluetoothDevice device : pairedDevices) {
+            BTArrayAdapter.add(device.getName());
+            deviceMap.put(device.getName(), device.getAddress());
+        }
 
-  @Override
-  protected void onPause()
-  {
-    super.onPause();
-    mSensorManager.unregisterListener(this);
+        Toast.makeText(getApplicationContext(), "Show Paired Devices",
+                Toast.LENGTH_SHORT).show();
 
-    Log.d("Paused", "...In onPause()...");
-
-    if (outStream != null)
-    {
-      try
-      {
-        outStream.flush();
-      } catch (IOException e)
-      {
-
-      }
     }
 
-    try
-    {
-      btSocket.close();
-    } catch (IOException e2)
-    {
+    public void find(View view) {
+
+        if (myBluetoothAdapter.isDiscovering()) {
+            // the button is pressed when it discovers, so cancel the discovery
+            myBluetoothAdapter.cancelDiscovery();
+        } else {
+            BTArrayAdapter.clear();
+            deviceMap.clear();
+            myBluetoothAdapter.startDiscovery();
+
+            registerReceiver(bReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+        }
     }
-  }
 
-  private void sendData(String message)
-  {
-    byte[] msgBuffer = message.getBytes();
+    public void off(View view) {
 
-    Log.d("Send", "...Sending data: " + message + "...");
+        myBluetoothAdapter.disable();
+        text.setText("Status: Disconnected");
 
-    try
-    {
-      outStream.write(msgBuffer);
-    } catch (IOException e)
-    {
-      String msg = "In onResume() and an exception occurred during write: "
-          + e.getMessage();
-      if (address.equals("00:00:00:00:00:00"))
-        msg = msg
-            + ".\n\nUpdate your server address from 00:00:00:00:00:00 to the correct address on line 37 in the java code";
-      msg = msg + ".\n\nCheck that the SPP UUID: " + MY_UUID.toString()
-          + " exists on server.\n\n";
+        Toast.makeText(getApplicationContext(), "Bluetooth turned off",
+                Toast.LENGTH_LONG).show();
     }
-  }
+
+    @Override
+    protected void onDestroy() {
+        // TODO Auto-generated method stub
+        super.onDestroy();
+        unregisterReceiver(bReceiver);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Do something here if sensor accuracy changes.
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        if (connected) {
+            int x = (int) (event.values[0] + 10f);
+            int y = (int) (event.values[1] + 10f);
+            int z = (int) (event.values[2] + 10f);
+
+            if (y != sensorValues[1] || z != sensorValues[2]) {
+                Log.i("Test", "X: " + x + "; Y: " + y + "; Z: " + z);
+
+                sensorValues[0] = x;
+                sensorValues[1] = y;
+                sensorValues[2] = z;
+
+                String newCommand;
+                if (z >= 17) {
+                    if (y >= 11) {
+                        newCommand = "5";
+                        cmdView.setText(cmdString + "Turn Right");
+                        Log.d("Send", "Z: " + z + "; Y: " + y);
+                    } else if (y <= 6) {
+                        newCommand = "4";
+                        cmdView.setText(cmdString + "Turn Left");
+                        Log.d("Send", "Z: " + z + "; Y: " + y);
+                    } else {
+                        newCommand = "1";
+                        cmdView.setText(cmdString + "Forward");
+                        Log.d("Send", "Z: " + z + "; Y: " + y);
+                    }
+                } else if (z <= 11) {
+                    newCommand = "2";
+                    cmdView.setText(cmdString + "Backwards");
+                    Log.d("Send", "Z: " + z + "; Y: " + y);
+                } else if (y >= 11) {
+                    newCommand = "6";
+                    cmdView.setText(cmdString + "Spin Right");
+                    Log.d("Send", "Z: " + z + "; Y: " + y);
+                } else if (y <= 6) {
+                    newCommand = "3";
+                    cmdView.setText(cmdString + "Spin Left");
+                    Log.d("Send", "Z: " + z + "; Y: " + y);
+                } else {
+                    newCommand = "0";
+                    cmdView.setText(cmdString + "Stop");
+                    Log.d("Send", "Z: " + z + "; Y: " + y);
+                }
+
+                if (!newCommand.equalsIgnoreCase(command)) {
+                    sendData(newCommand);
+                    command = newCommand;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+        mSensorManager.registerListener(this, mGrav,
+                SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+        mSensorManager.unregisterListener(this);
+
+        Log.d("Paused", "...In onPause()...");
+
+        if (outStream != null) {
+            try {
+                outStream.flush();
+            } catch (IOException e) {
+
+            }
+        }
+    }
+
+    private void sendData(String message) {
+
+        byte[] msgBuffer = message.getBytes();
+
+        Log.d("Send", "...Sending data: " + message + "...");
+
+        try {
+            outStream.write(msgBuffer);
+        } catch (IOException e) {
+            String msg = "In onResume() and an exception occurred during write: "
+                    + e.getMessage();
+            if (address.equals("00:00:00:00:00:00"))
+                msg = msg
+                        + ".\n\nUpdate your server address from 00:00:00:00:00:00 to the correct address on line 37 in the java code";
+            msg = msg + ".\n\nCheck that the SPP UUID: " + MY_UUID.toString()
+                    + " exists on server.\n\n";
+        }
+    }
 
 }
