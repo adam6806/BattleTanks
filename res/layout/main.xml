@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:onClick="connectToggle" >
+    >
 
     <TextView
         android:layout_width="wrap_content"
@@ -38,15 +38,15 @@
         android:id="@+id/dataToggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
         android:checked="false"
         android:height="70dp"
         android:onClick="setSendFlag"
         android:text="New ToggleButton"
         android:textOff="Start Data"
         android:textOn="Stop Data\n(Panic Button)"
-        android:width="150dp" />
+        android:width="150dp"
+        android:layout_above="@+id/connectToggle"
+        android:layout_alignParentStart="true"/>
 
     <VideoView
         android:layout_width="wrap_content"
@@ -55,17 +55,17 @@
         android:layout_above="@+id/connectToggle"
         android:layout_toRightOf="@+id/connectToggle"
         android:layout_below="@+id/deviceAddress"
-        android:layout_toLeftOf="@+id/dataToggle"/>
+        android:layout_toLeftOf="@+id/cmdImageView"/>
 
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/imageView"
+        android:id="@+id/cmdImageView"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         android:src="@drawable/stop"
         android:layout_alignBottom="@+id/deviceAddress"
-        android:layout_toRightOf="@+id/videoView"/>
+        android:layout_toRightOf="@+id/editText"/>
 
     <EditText
         android:layout_width="wrap_content"
@@ -73,7 +73,7 @@
         android:id="@+id/editText"
         android:layout_alignParentBottom="true"
         android:layout_toRightOf="@+id/connectToggle"
-        android:layout_toLeftOf="@+id/dataToggle"
+        android:layout_toLeftOf="@+id/reverseButton"
         android:layout_below="@+id/videoView"
         android:hint="Http address of second phone's video stream."
         android:gravity="center"/>
@@ -83,23 +83,23 @@
         android:layout_height="wrap_content"
         android:text="New ToggleButton"
         android:id="@+id/lightsToggle"
-        android:layout_centerVertical="true"
-        android:layout_alignParentEnd="true"
-        android:layout_toRightOf="@+id/videoView"
         android:textOff="Lights Off"
-        android:textOn="Lights On"/>
+        android:textOn="Lights On"
+        android:layout_above="@+id/videoToggle"
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@+id/videoView"/>
 
     <ToggleButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="New ToggleButton"
         android:id="@+id/videoToggle"
-        android:layout_alignBottom="@+id/lightsToggle"
-        android:layout_alignParentStart="true"
-        android:layout_toLeftOf="@+id/videoView"
         android:textOff="Start Video Stream"
         android:textOn="Stop Video Stream"
-        android:checked="false"/>
+        android:checked="false"
+        android:layout_above="@+id/dataToggle"
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@+id/videoView"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -109,6 +109,28 @@
         android:layout_alignParentTop="true"
         android:layout_above="@+id/videoView"
         android:layout_alignStart="@+id/videoView"
-        android:layout_toLeftOf="@+id/imageView"
+        android:layout_toLeftOf="@+id/cmdImageView"
         android:gravity="center"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/reverseButton"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:src="@drawable/down"
+        android:minWidth="150dp"
+        android:minHeight="70dp"
+        android:padding="20dp"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/forwardButton"
+        android:layout_above="@+id/reverseButton"
+        android:layout_alignParentEnd="true"
+        android:minHeight="70dp"
+        android:minWidth="150dp"
+        android:src="@drawable/up"
+        android:padding="20dp"/>
 </RelativeLayout>
