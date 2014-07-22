@@ -12,6 +12,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -19,9 +20,11 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+import android.widget.VideoView;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -241,6 +244,27 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    public void toggleVideoStream(View view) {
+
+        boolean on = ((ToggleButton) view).isChecked();
+        EditText urlText = (EditText) findViewById(R.id.editText);
+        boolean noUrl = urlText.getText().toString().equals("");
+
+        if (on && !noUrl) {
+            VideoView vidView = (VideoView) findViewById(R.id.videoView);
+            String vidAddress = urlText.getText().toString();
+            Uri vidUri = Uri.parse(vidAddress);
+            vidView.setVideoURI(vidUri);
+            vidView.start();
+        } else if (on && noUrl) {
+            ((ToggleButton) view).setChecked(false);
+            instructions.setText("Must provide the url of the video stream.");
+        } else {
+            VideoView vidView = (VideoView) findViewById(R.id.videoView);
+            vidView.stopPlayback();
+        }
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -397,7 +421,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         sendData("8"); // Try to turn the lights off first
 
         try {
+            if (outStream != null)
             outStream.close();
+            if (btSocket != null)
             btSocket.close();
         } catch (IOException e) {
             e.printStackTrace();

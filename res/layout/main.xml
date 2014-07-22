@@ -100,7 +100,8 @@
         android:checked="false"
         android:layout_above="@+id/dataToggle"
         android:layout_alignParentStart="true"
-        android:layout_toLeftOf="@+id/videoView"/>
+        android:layout_toLeftOf="@+id/videoView"
+        android:onClick="toggleVideoStream"/>
 
     <TextView
         android:layout_width="wrap_content"
