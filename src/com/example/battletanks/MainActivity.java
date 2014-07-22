@@ -14,6 +14,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -208,7 +209,15 @@ public class MainActivity extends Activity implements SensorEventListener {
             } catch (IOException e) {
                 Log.d("Cnct", "e3");
             }
+
+            //SystemClock.sleep(1000);
+
+            ((ToggleButton) findViewById(R.id.lightsToggle)).setChecked(true);
+            sendData("7");
         } else {
+
+            sendData("8"); // turn the lights off first
+            SystemClock.sleep(200); // give the data time to be sent before closing the connection
 
             connected = false;
             commandImage.setImageResource(R.drawable.stop);
@@ -216,8 +225,8 @@ public class MainActivity extends Activity implements SensorEventListener {
             // Turn data off if disconnect occurs
             ToggleButton dataToggle = (ToggleButton) findViewById(R.id.dataToggle);
             dataToggle.setChecked(false);
+            sendFlag = false;
 
-            sendData("8"); // turn the lights off first
             ToggleButton lightsToggle = (ToggleButton) findViewById(R.id.lightsToggle);
             lightsToggle.setChecked(false);
 
@@ -311,13 +320,13 @@ public class MainActivity extends Activity implements SensorEventListener {
                     if (y >= 13) {
                         commandImage.setImageResource(R.drawable.arrow_right);
                         newCommand = "6";
-                    } else if (y <= 5) {
+                    } else if (y <= 6) {
                         commandImage.setImageResource(R.drawable.arrow_left);
                         newCommand = "3";
                     } else if (y >= 11) {
                         commandImage.setImageResource(R.drawable.arrow_right_up);
                         newCommand = "5";
-                    } else if (y <= 7) {
+                    } else if (y <= 8) {
                         commandImage.setImageResource(R.drawable.arrow_left_up);
                         newCommand = "4";
                     } else {
