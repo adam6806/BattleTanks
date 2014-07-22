@@ -21,7 +21,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.IOException;
@@ -71,6 +70,11 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         // Get preferences
         SharedPreferences settings = getPreferences(MODE_PRIVATE);
+        if (settings.contains("name")) {
+            instructions.setText("Not Connected");
+        } else {
+            instructions.setText("Go to settings to pick a device.");
+        }
         deviceName = settings.getString("name", "Device Name");
         address = settings.getString("address", "Device Address");
         dName.setText(deviceName);
@@ -82,9 +86,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         // Check if the device has a gravity sensor
         if (mGrav == null) {
-            Toast.makeText(getApplicationContext(),
-                    "Your device does not support Gravity sensor!!", Toast.LENGTH_LONG)
-                    .show();
+            instructions.setText("Your device does not have a gravity sensor. Sorry!");
         }
 
         // Get the devices bluetooth adapter
@@ -92,8 +94,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         // Check if the device has a gravity sensor
         if (myBluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(),
-                    "Your device does not support Bluetooth", Toast.LENGTH_LONG).show();
+            instructions.setText("Your device does not have bluetooth. Sorry!");
         }
 
         forwardImage.setOnTouchListener(new View.OnTouchListener() {
@@ -147,9 +148,15 @@ public class MainActivity extends Activity implements SensorEventListener {
     }
 
     public void setSendFlag(View view) {
-        // Is the toggle on?
-        sendFlag = ((ToggleButton) view).isChecked();
 
+        if (connected) {
+            sendFlag = ((ToggleButton) view).isChecked();
+            if (sendFlag) instructions.setText("Data is enabled!");
+            else instructions.setText("Data is disabled!");
+        } else {
+            instructions.setText("Must be connected to send data!");
+            ((ToggleButton) view).setChecked(false);
+        }
     }
 
     public void connect(View view) {
@@ -193,25 +200,44 @@ public class MainActivity extends Activity implements SensorEventListener {
             try {
                 outStream = btSocket.getOutputStream();
                 connected = true;
-                Toast.makeText(getApplicationContext(),
-                        "Connection established and data link opened!!", Toast.LENGTH_LONG)
-                        .show();
+                instructions.setText("Connected with device! Data is disabled.");
                 Log.d("Cnct", "...Connection established and data link opened...");
             } catch (IOException e) {
                 Log.d("Cnct", "e3");
             }
         } else {
 
+            connected = false;
+            commandImage.setImageResource(R.drawable.stop);
+
             // Turn data off if disconnect occurs
             ToggleButton dataToggle = (ToggleButton) findViewById(R.id.dataToggle);
             dataToggle.setChecked(false);
 
+            sendData("8"); // turn the lights off first
+            ToggleButton lightsToggle = (ToggleButton) findViewById(R.id.lightsToggle);
+            lightsToggle.setChecked(false);
+
             try {
                 outStream.close();
                 btSocket.close();
+                instructions.setText("Disconnected from device.");
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void lightToggle(View view) {
+        // Is the toggle on?
+        boolean on = ((ToggleButton) view).isChecked();
+        if (on && connected) {
+            sendData("7");
+        } else if (connected) {
+            sendData("8");
+        } else {
+            ((ToggleButton) view).setChecked(false);
+            instructions.setText("Must be connected to turn the lights on!");
         }
     }
 
@@ -367,6 +393,8 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         ToggleButton connectToggle = (ToggleButton) findViewById(R.id.connectToggle);
         connectToggle.setChecked(false);
+
+        sendData("8"); // Try to turn the lights off first
 
         try {
             outStream.close();
