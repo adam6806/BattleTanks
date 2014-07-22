@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:onClick="connectToggle" >
 
     <TextView
         android:layout_width="wrap_content"
@@ -21,31 +21,32 @@
         android:layout_alignParentStart="true"/>
 
     <ToggleButton
+        android:id="@+id/connectToggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New ToggleButton"
-        android:id="@+id/connectToggle"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
-        android:textOn="Disconnect"
-        android:textOff="Connect"
-        android:width="150dp"
+        android:checked="false"
         android:height="70dp"
-        android:checked="false"/>
+        android:onClick="connect"
+        android:text="New ToggleButton"
+        android:textOff="Connect"
+        android:textOn="Disconnect"
+        android:width="150dp" />
 
     <ToggleButton
+        android:id="@+id/dataToggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New ToggleButton"
-        android:id="@+id/dataToggle"
-        android:textOn="Stop Data\n(Panic Button)"
-        android:textOff="Start Data"
-        android:width="150dp"
-        android:height="70dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
         android:checked="false"
-        />
+        android:height="70dp"
+        android:onClick="setSendFlag"
+        android:text="New ToggleButton"
+        android:textOff="Start Data"
+        android:textOn="Stop Data\n(Panic Button)"
+        android:width="150dp" />
 
     <VideoView
         android:layout_width="wrap_content"
