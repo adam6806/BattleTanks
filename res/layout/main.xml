@@ -48,14 +48,15 @@
         android:layout_above="@+id/connectToggle"
         android:layout_alignParentStart="true"/>
 
-    <VideoView
+    <WebView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/videoView"
         android:layout_above="@+id/connectToggle"
         android:layout_toRightOf="@+id/connectToggle"
         android:layout_below="@+id/deviceAddress"
-        android:layout_toLeftOf="@+id/cmdImageView"/>
+        android:layout_toLeftOf="@+id/cmdImageView"
+        android:longClickable="false"/>
 
     <ImageView
         android:layout_width="wrap_content"
@@ -75,8 +76,9 @@
         android:layout_toRightOf="@+id/connectToggle"
         android:layout_toLeftOf="@+id/reverseButton"
         android:layout_below="@+id/videoView"
-        android:hint="Http address of second phone's video stream."
-        android:gravity="center"/>
+        android:hint="Http address of second phone's video stream + /browserfs.html\nhttp://192.168.1.2:8080/browerfs.html"
+        android:gravity="center"
+        android:textSize="15sp"/>
 
     <ToggleButton
         android:layout_width="wrap_content"

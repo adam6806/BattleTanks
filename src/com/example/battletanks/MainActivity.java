@@ -12,7 +12,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -21,14 +20,16 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
-import android.widget.VideoView;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.util.UUID;
 
 public class MainActivity extends Activity implements SensorEventListener {
@@ -48,6 +49,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private OutputStream outStream;
     private String address;
     private String deviceName;
+    private String vidAddress;
     private BluetoothAdapter myBluetoothAdapter;
     private BluetoothSocket btSocket;
     private boolean sendFlag;
@@ -245,8 +247,48 @@ public class MainActivity extends Activity implements SensorEventListener {
         boolean on = ((ToggleButton) view).isChecked();
         if (on && connected) {
             sendData("7");
+            if (!vidAddress.isEmpty()) {
+                Thread thread = new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        try {
+                            String urlString = vidAddress.substring(0, vidAddress.length() - 14);
+                            urlString = urlString + "enabletorch";
+                            URL url = new URL(urlString);
+                            InputStream is = url.openStream();
+                            is.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                thread.start();
+            }
+
         } else if (connected) {
             sendData("8");
+            if (!vidAddress.isEmpty()) {
+                Thread thread = new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+
+                        try {
+                            String urlString = vidAddress.substring(0, vidAddress.length() - 14);
+                            urlString = urlString + "disabletorch";
+                            URL url = new URL(urlString);
+                            InputStream is = url.openStream();
+                            is.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                thread.start();
+            }
+
         } else {
             ((ToggleButton) view).setChecked(false);
             instructions.setText("Must be connected to turn the lights on!");
@@ -257,20 +299,19 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         boolean on = ((ToggleButton) view).isChecked();
         EditText urlText = (EditText) findViewById(R.id.editText);
+        WebView vidView = (WebView) findViewById(R.id.videoView);
+        //vidView.getSettings().setJavaScriptEnabled(true);
+        //vidView.getSettings().setBuiltInZoomControls(true);
         boolean noUrl = urlText.getText().toString().equals("");
 
         if (on && !noUrl) {
-            VideoView vidView = (VideoView) findViewById(R.id.videoView);
-            String vidAddress = urlText.getText().toString();
-            Uri vidUri = Uri.parse(vidAddress);
-            vidView.setVideoURI(vidUri);
-            vidView.start();
+            vidAddress = urlText.getText().toString();
+            vidView.loadUrl(vidAddress);
         } else if (on && noUrl) {
             ((ToggleButton) view).setChecked(false);
             instructions.setText("Must provide the url of the video stream.");
         } else {
-            VideoView vidView = (VideoView) findViewById(R.id.videoView);
-            vidView.stopPlayback();
+            vidView.stopLoading();
         }
     }
 
