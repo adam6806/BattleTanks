@@ -1,9 +1,8 @@
-package com.example.battletanks;
+package com.github.adam6806.battletanks;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -16,27 +15,20 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Created by Adam Smith on 7/21/2014.
  */
 public class SettingsActivity extends Activity {
 
-    private static final UUID MY_UUID = UUID
-            .fromString("00001101-0000-1000-8000-00805F9B34FB");
+
     private Button listBtn;
     private ListView myListView;
     private BluetoothAdapter myBluetoothAdapter;
-    private BluetoothSocket btSocket;
     private HashMap<String, String> deviceMap;
     private ArrayAdapter<String> BTArrayAdapter;
-    private boolean connected = false;
-    private OutputStream outStream;
-    private BroadcastReceiver bReceiver;
     private Set<BluetoothDevice> pairedDevices;
     private String deviceName;
     private String address;
@@ -62,17 +54,13 @@ public class SettingsActivity extends Activity {
         // Get the devices bluetooth adapter
         myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        // Check if the device has a gravity sensor
-        if (myBluetoothAdapter == null) {
-            Toast.makeText(getApplicationContext(),
-                    "Your device does not support Bluetooth", Toast.LENGTH_LONG).show();
-        }
-
         // Check if the device supports bluetooth
         if (myBluetoothAdapter == null) {
             listBtn.setEnabled(false);
+            Toast.makeText(getApplicationContext(),
+                    "Your device does not support Bluetooth", Toast.LENGTH_LONG).show();
         } else {
-            bReceiver = new BroadcastReceiver() {
+            BroadcastReceiver bReceiver = new BroadcastReceiver() {
 
                 public void onReceive(Context context, Intent intent) {
 
@@ -82,8 +70,7 @@ public class SettingsActivity extends Activity {
                         // Get the BluetoothDevice object from the Intent
                         BluetoothDevice device = intent
                                 .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                        // add the name and the MAC address of the object to the
-                        // arrayAdapter
+                        // add the name and the MAC address of the object to the arrayAdapter
                         BTArrayAdapter.add(device.getName());
                         deviceMap.put(device.getName(), device.getAddress());
                         BTArrayAdapter.notifyDataSetChanged();
@@ -117,35 +104,27 @@ public class SettingsActivity extends Activity {
         BTArrayAdapter.clear();
         deviceMap.clear();
 
-        // put it's one to the adapter
+        // Put each paired device in the list and the device map
         for (BluetoothDevice device : pairedDevices) {
             BTArrayAdapter.add(device.getName());
             deviceMap.put(device.getName(), device.getAddress());
         }
 
-        Toast.makeText(getApplicationContext(), "Show Paired Devices",
+        Toast.makeText(getApplicationContext(), "Updating list of paired devices",
                 Toast.LENGTH_SHORT).show();
 
     }
 
     @Override
     protected void onResume() {
-        // TODO Auto-generated method stub
         super.onResume();
         list(listBtn);
     }
 
+    // Send user to phone's bluetooth settings to turn on bt and/or pair with a new device
     public void goToBtSettings(View v) {
 
         Intent settingsIntent = new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS);
         startActivity(settingsIntent);
     }
-
-//  @Override
-//  protected void onDestroy()
-//  {
-//    // TODO Auto-generated method stub
-//    super.onDestroy();
-//    unregisterReceiver(bReceiver);
-//  }
 }

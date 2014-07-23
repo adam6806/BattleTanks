@@ -1,4 +1,4 @@
-package com.example.battletanks;
+package com.github.adam6806.battletanks;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -24,6 +24,7 @@ import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.IOException;
@@ -34,15 +35,16 @@ import java.util.UUID;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
+    // This is the standard SPP UUID
     private static final UUID MY_UUID = UUID
             .fromString("00001101-0000-1000-8000-00805F9B34FB");
     int[] sensorValues = {0, 0, 0};
-    String command = "0";
     private SensorManager mSensorManager;
     private Sensor mGrav;
     private TextView dName;
     private TextView dAddr;
     private TextView instructions;
+    private EditText urlText;
     private ImageView commandImage;
     private ImageView forwardImage;
     private ImageView reverseImage;
@@ -50,12 +52,14 @@ public class MainActivity extends Activity implements SensorEventListener {
     private String address;
     private String deviceName;
     private String vidAddress;
+    private String command = "0";
     private BluetoothAdapter myBluetoothAdapter;
     private BluetoothSocket btSocket;
     private boolean sendFlag;
     private boolean forwardPressed;
     private boolean reversePressed;
     private boolean connected;
+    private SharedPreferences preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,21 +74,25 @@ public class MainActivity extends Activity implements SensorEventListener {
         dName = (TextView) findViewById(R.id.deviceName);
         dAddr = (TextView) findViewById(R.id.deviceAddress);
         instructions = (TextView) findViewById(R.id.instructionText);
+        urlText = (EditText) findViewById(R.id.editText);
         commandImage = (ImageView) findViewById(R.id.cmdImageView);
         forwardImage = (ImageView) findViewById(R.id.forwardButton);
         reverseImage = (ImageView) findViewById(R.id.reverseButton);
 
         // Get preferences
-        SharedPreferences settings = getPreferences(MODE_PRIVATE);
-        if (settings.contains("name")) {
+        preferences = getPreferences(MODE_PRIVATE);
+        if (preferences.contains("name")) {
             instructions.setText("Not Connected");
         } else {
-            instructions.setText("Go to settings to pick a device.");
+            instructions.setText("Go to Settings to pick a device.");
         }
-        deviceName = settings.getString("name", "Device Name");
-        address = settings.getString("address", "Device Address");
+        deviceName = preferences.getString("name", "Device Name");
+        address = preferences.getString("address", "Device Address");
+        vidAddress = preferences.getString("url", "");
+
         dName.setText(deviceName);
         dAddr.setText(address);
+        urlText.setText(vidAddress);
 
         // Setup gravity sensor
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -103,6 +111,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             instructions.setText("Your device does not have bluetooth. Sorry!");
         }
 
+        // Touch listener for the forward image.
         forwardImage.setOnTouchListener(new View.OnTouchListener() {
 
             @Override
@@ -112,20 +121,22 @@ public class MainActivity extends Activity implements SensorEventListener {
                     forwardImage.setColorFilter(0xFFFF0000, PorterDuff.Mode.MULTIPLY); // Make the image look clicked
                     forwardPressed = true;
                     if (connected && sendFlag) {
-                        sendData(command);
+                        sendData(command); // Send whatever the current forward direction is
                     }
                     return true;
                 } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
                     forwardImage.clearColorFilter();
                     forwardPressed = false;
                     if (connected && sendFlag) {
-                        sendData("0");
+                        sendData("0"); // Send stop
                     }
                     return true;
                 }
                 return false;
             }
         });
+
+        // Touch listener for the reverse image.
         reverseImage.setOnTouchListener(new View.OnTouchListener() {
 
             @Override
@@ -136,7 +147,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     reversePressed = true;
                     if (connected && sendFlag) {
                         commandImage.setImageResource(R.drawable.arrow_down);
-                        sendData("2");
+                        sendData("2"); // Send reverse
                     }
                     return true;
                 } else if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
@@ -144,7 +155,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     reversePressed = false;
                     if (connected && sendFlag) {
                         commandImage.setImageResource(R.drawable.arrows_up);
-                        sendData("0");
+                        sendData("0"); // Send stop
                     }
                     return true;
                 }
@@ -153,6 +164,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         });
     }
 
+    // Click listener for the send data toggle button
     public void setSendFlag(View view) {
 
         if (connected) {
@@ -165,6 +177,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    // Click listener for the connect/disconnect toggle button
     public void connect(View view) {
         // Is the toggle on?
         boolean on = ((ToggleButton) view).isChecked();
@@ -179,9 +192,11 @@ public class MainActivity extends Activity implements SensorEventListener {
             // UUID for SPP.
             try {
                 btSocket = device.createRfcommSocketToServiceRecord(MY_UUID);
-                Log.d("Cnct", "uuid");
+                Log.i("Connect", "Creating bt socket.");
             } catch (IOException e) {
-                Log.d("Cnct", "e");
+                Log.e("Connect", e.getMessage());
+                Toast.makeText(getApplicationContext(), "Error connecting to device.",
+                        Toast.LENGTH_SHORT).show();
             }
 
             // Discovery is resource intensive. Make sure it isn't going on
@@ -189,33 +204,35 @@ public class MainActivity extends Activity implements SensorEventListener {
             myBluetoothAdapter.cancelDiscovery();
 
             // Establish the connection. This will block until it connects.
-            Log.d("Cnct", "...Connecting to Remote...");
+            Log.i("Connect", "...Connecting to Remote...");
+            Toast.makeText(getApplicationContext(), "Connecting to " + deviceName,
+                    Toast.LENGTH_LONG).show();
             try {
                 btSocket.connect();
             } catch (IOException e) {
                 try {
                     btSocket.close();
                 } catch (IOException e2) {
-                    Log.d("Cnct", "e2!");
+                    Log.e("Connect", e2.getMessage());
                 }
             }
 
             // Create a data stream so we can talk to server.
-            Log.d("Cnct", "...Creating Socket...");
+            Log.i("Connect", "...Creating Socket...");
 
             try {
                 outStream = btSocket.getOutputStream();
                 connected = true;
                 instructions.setText("Connected with device! Data is disabled.");
-                Log.d("Cnct", "...Connection established and data link opened...");
             } catch (IOException e) {
-                Log.d("Cnct", "e3");
+                Log.e("Connect", e.getMessage());
             }
 
-            //SystemClock.sleep(1000);
+            Log.i("Connect", "...Connection established and data link opened...");
 
             ((ToggleButton) findViewById(R.id.lightsToggle)).setChecked(true);
             sendData("7");
+
         } else {
 
             sendData("8"); // turn the lights off first
@@ -232,6 +249,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             ToggleButton lightsToggle = (ToggleButton) findViewById(R.id.lightsToggle);
             lightsToggle.setChecked(false);
 
+            // Close all the connections
             try {
                 outStream.close();
                 btSocket.close();
@@ -246,7 +264,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Is the toggle on?
         boolean on = ((ToggleButton) view).isChecked();
         if (on && connected) {
-            sendData("7");
+            sendData("7"); // Turn on led on microcontroller
+
+            // Send command to other phone to turn on the flash
+            // Network IO must run in separate thread
             if (!vidAddress.isEmpty()) {
                 Thread thread = new Thread(new Runnable() {
 
@@ -268,7 +289,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             }
 
         } else if (connected) {
-            sendData("8");
+            sendData("8"); // Turn off led on arduino
+
+            // Send command to other phone to turn off the flash
+            // Network IO must run in separate thread
             if (!vidAddress.isEmpty()) {
                 Thread thread = new Thread(new Runnable() {
 
@@ -295,10 +319,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    // Connect/disconnect to the other phone's video stream
     public void toggleVideoStream(View view) {
 
         boolean on = ((ToggleButton) view).isChecked();
-        EditText urlText = (EditText) findViewById(R.id.editText);
         WebView vidView = (WebView) findViewById(R.id.videoView);
         //vidView.getSettings().setJavaScriptEnabled(true);
         //vidView.getSettings().setBuiltInZoomControls(true);
@@ -330,6 +354,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         Intent intent = new Intent(this, SettingsActivity.class);
 
         int id = item.getItemId();
+
+        // Go to the Settings activity
         if (id == R.id.action_settings) {
             startActivityForResult(intent, 0);
             return true;
@@ -342,6 +368,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Do something here if sensor accuracy changes.
     }
 
+
+    // Change steering based on Y value from gravity sensor
     @Override
     public void onSensorChanged(SensorEvent event) {
 
@@ -413,6 +441,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    // Return from Settings activity. Set the address and name of selected device
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
@@ -420,13 +449,19 @@ public class MainActivity extends Activity implements SensorEventListener {
             address = data.getExtras().getString("address");
             deviceName = data.getExtras().getString("name");
 
-            instructions.setVisibility(View.INVISIBLE);
-
             dAddr.setText(address);
             dName.setText(deviceName);
+
+            // Store preferences
+            SharedPreferences settings = getPreferences(MODE_PRIVATE);
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putString("name", deviceName);
+            editor.putString("address", address);
+            editor.commit();
         }
     }
 
+    // Send data to arduino
     private void sendData(String message) {
 
         byte[] msgBuffer = message.getBytes();
@@ -437,15 +472,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             try {
                 outStream.write(msgBuffer);
             } catch (IOException e) {
-                String msg = "In onResume() and an exception occurred during write: "
-                        + e.getMessage();
-
-                if (address.equals("00:00:00:00:00:00"))
-                    msg = msg
-                            + ".\n\nUpdate your server address from 00:00:00:00:00:00 to the correct address on line 37 in the java code";
-
-                msg = msg + ".\n\nCheck that the SPP UUID: " + MY_UUID.toString()
-                        + " exists on server.\n\n";
+                Log.e("Sending", e.getMessage());
             }
         }
     }
@@ -454,11 +481,13 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onStop() {
 
         super.onStop();
+
         // Store preferences
         SharedPreferences settings = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
         editor.putString("name", deviceName);
         editor.putString("address", address);
+        editor.putString("url", vidAddress);
         editor.commit();
 
         // Turn data off if disconnect occurs
@@ -470,11 +499,12 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         sendData("8"); // Try to turn the lights off first
 
+        // Close streams if they were open
         try {
             if (outStream != null)
-            outStream.close();
+                outStream.close();
             if (btSocket != null)
-            btSocket.close();
+                btSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
