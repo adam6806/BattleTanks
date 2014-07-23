@@ -1,5 +1,6 @@
 package com.github.adam6806.battletanks;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -7,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -39,6 +41,9 @@ public class SettingsActivity extends Activity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.settings);
+
+        ActionBar actionBar = getActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
         myIntent = this.getIntent();
 
@@ -113,6 +118,19 @@ public class SettingsActivity extends Activity {
         Toast.makeText(getApplicationContext(), "Updating list of paired devices",
                 Toast.LENGTH_SHORT).show();
 
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                // app icon in action bar clicked; goto parent activity.
+                this.finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
