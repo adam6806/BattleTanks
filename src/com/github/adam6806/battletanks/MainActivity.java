@@ -7,12 +7,17 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.Menu;
@@ -27,10 +32,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Calendar;
 import java.util.UUID;
 
 public class MainActivity extends Activity implements SensorEventListener {
@@ -60,6 +69,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private boolean reversePressed;
     private boolean connected;
     private SharedPreferences preferences;
+    private MediaScannerConnection msConn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -182,7 +192,11 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Is the toggle on?
         boolean on = ((ToggleButton) view).isChecked();
 
-        if (on) {
+        if (on && !deviceName.equalsIgnoreCase("Device Name")) {
+
+            Toast.makeText(getApplicationContext(), "Attempting connection with device.",
+                    Toast.LENGTH_LONG).show();
+
             // Set up a pointer to the remote node using it's address.
             BluetoothDevice device = myBluetoothAdapter.getRemoteDevice(address);
 
@@ -233,6 +247,9 @@ public class MainActivity extends Activity implements SensorEventListener {
             ((ToggleButton) findViewById(R.id.lightsToggle)).setChecked(true);
             sendData("7");
 
+        } else if (deviceName.equalsIgnoreCase("Device Name")) {
+            instructions.setText("You must go to settings to select a device!");
+            ((ToggleButton) findViewById(R.id.connectToggle)).setChecked(false);
         } else {
 
             sendData("8"); // turn the lights off first
@@ -280,6 +297,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                             URL url = new URL(urlString);
                             InputStream is = url.openStream();
                             is.close();
+
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -319,13 +337,107 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
     }
 
+    public void takePicture(View view) {
+
+        if (!vidAddress.isEmpty()) {
+            Toast.makeText(getApplicationContext(), "Requesting picture from device and saving to Gallery in BattleTanks album.",
+                    Toast.LENGTH_LONG).show();
+            Thread thread = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+
+                    try {
+
+                        String urlString = vidAddress.substring(0, vidAddress.length() - 14);
+                        urlString = urlString + "photoaf.jpg";
+                        Bitmap image = getBitmapFromURL(urlString);
+                        savePhoto(image);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            thread.start();
+        }
+    }
+
+    public Bitmap getBitmapFromURL(String imageUrl) {
+
+        try {
+            URL url = new URL(imageUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setDoInput(true);
+            connection.connect();
+            InputStream input = connection.getInputStream();
+            Bitmap myBitmap = BitmapFactory.decodeStream(input);
+            return myBitmap;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void savePhoto(Bitmap bmp) {
+
+        File imageFileFolder = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "BattleTanks");
+        imageFileFolder.mkdir();
+        FileOutputStream out = null;
+        Calendar c = Calendar.getInstance();
+        String date = fromInt(c.get(Calendar.MONTH))
+                + fromInt(c.get(Calendar.DAY_OF_MONTH))
+                + fromInt(c.get(Calendar.YEAR))
+                + fromInt(c.get(Calendar.HOUR_OF_DAY))
+                + fromInt(c.get(Calendar.MINUTE))
+                + fromInt(c.get(Calendar.SECOND));
+        File imageFileName = new File(imageFileFolder, date.toString() + ".jpg");
+        try {
+            out = new FileOutputStream(imageFileName);
+            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out);
+            out.flush();
+            out.close();
+            scanPhoto(imageFileName.toString());
+            out = null;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public String fromInt(int val) {
+
+        return String.valueOf(val);
+    }
+
+
+    public void scanPhoto(final String imageFileName) {
+
+        msConn = new MediaScannerConnection(MainActivity.this, new MediaScannerConnection.MediaScannerConnectionClient() {
+
+            public void onMediaScannerConnected() {
+
+                msConn.scanFile(imageFileName, null);
+                Log.i("msClient obj  in Photo Utility", "connection established");
+            }
+
+            public void onScanCompleted(String path, Uri uri) {
+
+                msConn.disconnect();
+                Log.i("msClient obj in Photo Utility", "scan completed");
+            }
+        });
+        msConn.connect();
+    }
+
     // Connect/disconnect to the other phone's video stream
     public void toggleVideoStream(View view) {
 
         boolean on = ((ToggleButton) view).isChecked();
         WebView vidView = (WebView) findViewById(R.id.videoView);
         //vidView.getSettings().setJavaScriptEnabled(true);
-        //vidView.getSettings().setBuiltInZoomControls(true);
+        vidView.getSettings().setBuiltInZoomControls(true);
         boolean noUrl = urlText.getText().toString().equals("");
 
         if (on && !noUrl) {
@@ -335,7 +447,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             ((ToggleButton) view).setChecked(false);
             instructions.setText("Must provide the url of the video stream.");
         } else {
-            vidView.stopLoading();
+            vidView.loadUrl("about:blank");
         }
     }
 

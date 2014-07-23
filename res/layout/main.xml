@@ -56,7 +56,8 @@
         android:layout_toRightOf="@+id/connectToggle"
         android:layout_below="@+id/deviceAddress"
         android:layout_toLeftOf="@+id/cmdImageView"
-        android:longClickable="false"/>
+        android:longClickable="false"
+        android:clickable="false"/>
 
     <ImageView
         android:layout_width="wrap_content"
@@ -137,4 +138,14 @@
         android:minWidth="150dp"
         android:src="@drawable/up"
         android:padding="20dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save HD Pic"
+        android:id="@+id/pictureButton"
+        android:onClick="takePicture"
+        android:layout_above="@+id/forwardButton"
+        android:layout_alignParentEnd="true"
+        android:layout_alignStart="@+id/cmdImageView"/>
 </RelativeLayout>
